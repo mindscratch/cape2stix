@@ -50,10 +50,14 @@ def create_object(cls, *args, custom_object=True, force_uuidv5=False, **kwargs):
         else:
             kwargs["allow_custom"] = True
     obj = cls(*args, **kwargs)
-    
-    if force_uuidv5 and obj.id.split('--')[1][14] == '4':
+
+    if hasattr(obj, "_id_contributing_properties"):
+        id_ = generate_id(obj)
+        obj = cls(*args, id=id_, **kwargs)
+    elif force_uuidv5 and obj.id.split('--')[1][14] == '4':
         # NOTE: this is a lame hack ftm.
-        id_ = generate_UUIDv5(obj)
+        #id_ = generate_UUIDv5(obj)
+        id_ = generate_id(obj)
         obj = cls(*args, id=id_, **kwargs)
     return obj
 
@@ -67,6 +71,80 @@ def keys_to_object(d: dict, cls, keys: list, **kwargs):
         obj = create_object(cls, **keys_for_new_obj, **kwargs)
         return obj
 
+def generate_id(stixObj):
+    """
+    Generate a UUIDv5 for stixObj, using its "ID contributing
+    properties".
+
+    :return: The ID, or None if no ID contributing properties are set
+    """
+    SCO_DET_ID_NAMESPACE = uuid.UUID("00abedb4-aa42-466c-9c01-fed23315a9b7")
+
+    id_ = None
+    json_serializable_object = {}
+
+    if hasattr(stixObj, "_id_contributing_properties"):
+        contributing_props = stixObj._id_contributing_properties
+    elif stixObj.type == "relationship":
+        contributing_props = ["relationship_type", "source_ref", "target_ref"]
+    elif stixObj.type == "location":
+        contributing_props = ["name", "country"]
+
+    for key in contributing_props:
+        if key in stixObj:
+            obj_value = stixObj[key]
+            serializable_value = None
+            # obj_value = self[key]
+
+            if key == "hashes" and obj_value is not None:
+                serializable_value = _choose_one_hash(obj_value)
+
+                if serializable_value is None:
+                    raise ValueError("one hash is required")
+
+
+            elif obj_value is not None:
+                if key == "extensions":
+                    if stixObj.extensions is not None:
+                        clean_json = {}
+                        for key, value in stixObj.extensions.items():
+                            clean_json[key] = value.model_dump(mode="json")
+                        serializable_value = clean_json
+                    else:
+                        serializable_value = None
+                else:
+                    serializable_value = _make_json_serializable(obj_value)
+
+            json_serializable_object[key] = serializable_value
+        else:
+            json_serializable_object[key] = None
+
+    if json_serializable_object:
+        data = canonicalize(json_serializable_object, utf8=False)
+        uuid_ = uuid.uuid5(SCO_DET_ID_NAMESPACE, data)
+        id_ = "{}--{}".format(stixObj._type, str(uuid_))
+
+    return id_
+
+def _choose_one_hash(hash_data):
+    if hash_data["MD5"]:
+        return {"MD5": hash_data["MD5"]}
+    elif hash_data["SHA-1"]:
+        return {"SHA-1": hash_data["SHA-1"]}
+    elif hash_data["SHA-256"]:
+        return {"SHA-256": hash_data["SHA-256"]}
+    elif hash_data["SHA-512"]:
+        return {"SHA-512": hash_data["SHA-512"]}
+    elif hash_data["SHA3-256"]:
+        return {"SHA3-256": hash_data["SHA3-256"]}
+    elif hash_data["SHA3-512"]:
+        return {"SHA3-512": hash_data["SHA3-512"]}
+    elif hash_data["SSDEEP"]:
+        return {"SSDEEP": hash_data["SSDEEP"]}
+    elif hash_data["TLSH"]:
+        return {"TLSH": hash_data["TLSH"]}
+
+    return None
 
 def generate_UUIDv5(stixObj):
     """
@@ -114,7 +192,7 @@ def timing(func):
             
             result = await func(*args, **kwargs)
             end = time()
-            logging.info(f"func:{func.__name__} took: {end - start:2.5f} sec")
+            #logging.info(f"func:{func.__name__} took: {end - start:2.5f} sec")
             return result
     else:
         @wraps(func)
@@ -122,7 +200,7 @@ def timing(func):
             start = time()
             result = func(*args, **kwargs)
             end = time()
-            logging.info(f"func:{func.__name__} took: {end - start:2.5f} sec")
+            #logging.info(f"func:{func.__name__} took: {end - start:2.5f} sec")
             return result
 
     return wrap

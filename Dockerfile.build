@@ -1,0 +1,35 @@
+# Use Ubuntu as the base image
+FROM ubuntu:20.04
+
+# Set environment variables to avoid interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
+
+# Update and install prerequisites
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    software-properties-common \
+    curl \
+    git \
+    build-essential \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update \
+    && apt-get install -y python3.10 python3.10-venv python3.10-dev python3-pip \
+    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* \
+    && ln -s /usr/bin/python3 /usr/bin/python
+
+# Add Rust's Cargo bin directory to PATH
+ENV PATH="/root/.cargo/bin:$PATH"
+
+# Verify installations
+RUN python3.10 --version && \
+    git --version && \
+    rustc --version && \
+    cargo --version
+
+# Set default working directory
+WORKDIR /app
+
+#RUN python3 -m pip install poetry \
+#    && poetry install \
+#    && poetry build

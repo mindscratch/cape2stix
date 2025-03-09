@@ -65,7 +65,7 @@ class Cape2STIX:
         self.firstTimeSetup()
         if data is not None:
             self.content = data
-            logging.debug("Here")
+            #logging.debug("Here")
         self.sl = StixLoader(allow_custom=self.allow_custom)
         self.objects = []
         self.fspec={}
@@ -161,7 +161,11 @@ class Cape2STIX:
 
     @timing
     async def convert(self, outpath=None):
-        "Primary logic of convert.py; calls the gen-functions to convert report data into stix objects"
+        """
+        Primary logic of convert.py; calls the gen-functions to convert report data into stix objects.
+
+        Returns None if outpath is defined, otherwise it returns the stix data as a JSON string.
+        """
         try:
             if ("target" not in self.content) or ("category" not in self.content["target"]):
                 logging.error(f"{self.file} is not a valid CAPE report, skipping!")
@@ -232,13 +236,14 @@ class Cape2STIX:
                 self.clean_benign(self.benign_data) # parses current report and removes benign objects
 
             if outpath is not None:
-                logging.info(f"finished with {outpath}")
+                #logging.info(f"finished with {outpath}")
                 await self.sl.write_out(outpath)
             else:
-                await self.sl.write_out("Test_MalwareAnalysisCAPE.json")
+                return await self.sl.write()
         except Exception as e:
             logging.critical(f"File failed to convert: {self.file}")
             logging.exception(e)
+        return None
 
     # ie function to create processes.. return process tree so arg here would be parent process.
     @timing
@@ -254,9 +259,9 @@ class Cape2STIX:
         proc_dict = self.content["behavior"]["processes"]
         proc_list = []
         for proc in proc_dict:
-            logging.debug(proc["process_id"])
-            logging.debug(proc["parent_id"])
-            logging.debug(proc["environ"])
+            #logging.debug(proc["process_id"])
+            #logging.debug(proc["parent_id"])
+            #logging.debug(proc["environ"])
             # for key in proc['environ']:
             #     print(key+' ')
 
@@ -298,8 +303,8 @@ class Cape2STIX:
     @timing
     def genMalware(self):
         "generates the primary malware object and retrieves tags"
-        tags = self.getTags()
-        logging.debug(tags)
+        tags = None # don't fetch tags self.getTags()
+        #logging.debug(tags)
         if "sha256" in self.content["info"]["parent_sample"]:
             malware_obj = self.create_object(
                 Malware,
@@ -337,9 +342,9 @@ class Cape2STIX:
             self.content["CAPE"],
             self.content["info"],
         )
-        logging.debug(stats_dict)
-        logging.debug(cape_dict)
-        logging.debug(info_dict)
+        #logging.debug(stats_dict)
+        #logging.debug(cape_dict)
+        #logging.debug(info_dict)
 
         started = fixdate(info_dict["started"])
         analysis_started = fixdate(info_dict["machine"]["started_on"])
@@ -374,7 +379,7 @@ class Cape2STIX:
 
         # for object in ma_objects:
         #     self.sl.add_item(object)
-        logging.debug(malwareanalysis)
+        #logging.debug(malwareanalysis)
 
         ma_objects.append(self.create_rel(os_software, host_vm_ref, "related-to"))
         ma_objects.append(
@@ -447,13 +452,16 @@ class Cape2STIX:
         return (l, l)
 
     def genDeletedRegistryKeys(self):
-        return self.genRegistryKeys(self.content["behavior"]["summary"]["delete_keys"])
+        # return self.genRegistryKeys(self.content["behavior"]["summary"]["delete_keys"])
+        return self.genRegistryKeys(self.content.get("behavior", {}).get("summary", {}).get("delete_keys", []))
 
     def genModifiedRegistryKeys(self):
-        return self.genRegistryKeys(self.content["behavior"]["summary"]["write_keys"])
+        # return self.genRegistryKeys(self.content["behavior"]["summary"]["write_keys"])
+        return self.genRegistryKeys(self.content.get("behavior", {}).get("summary", {}).get("write_keys", []))
 
     def genReadRegistryKeys(self):
-        return self.genRegistryKeys(self.content["behavior"]["summary"]["read_keys"])
+        # return self.genRegistryKeys(self.content["behavior"]["summary"]["read_keys"])
+        return self.genRegistryKeys(self.content.get("behavior", {}).get("summary", {}).get("read_keys", []))
 
     @timing
     async def genTTPs(self):
@@ -462,22 +470,40 @@ class Cape2STIX:
         # NOTE: There may be multiple signatures that could be "hit", it may be desirable to represent that
         unique = set()
         try:
-            for ttp in self.content["ttps"]:
-                if ttp["ttp"].startswith("T"):
-                    if ttp["ttp"] in unique:
-                        continue
-                    else:
-                        unique.add(ttp["ttp"])
-    
-                    ttp_data = AttackGen.githubVersion(ttp["ttp"][1:])
-                    if ttp_data is None:
-                        continue
-                    ap = self.create_object(
-                        AttackPattern,
-                        **ttp_data,
-                    )
-                    ap = self.es.replace_w_extensions_spec(ap, "mitre")
-                    ttp_list.append(ap)
+            # for ttp in self.content["ttps"]:
+            #     if ttp["ttp"].startswith("T"):
+            #         if ttp["ttp"] in unique:
+            #             continue
+            #         else:
+            #             unique.add(ttp["ttp"])
+            #
+            #         ttp_data = AttackGen.githubVersion(ttp["ttp"][1:])
+            #         if ttp_data is None:
+            #             continue
+            #         ap = self.create_object(
+            #             AttackPattern,
+            #             **ttp_data,
+            #         )
+            #         ap = self.es.replace_w_extensions_spec(ap, "mitre")
+            #         ttp_list.append(ap)
+            # return (ttp_list, ttp_list)
+            for ttpsEntry in self.content.get("ttps", []):
+                for ttp in ttpsEntry.get("ttps", []):
+                    if ttp.startswith("T"):
+                        if ttp in unique:
+                            continue
+                        else:
+                            unique.add(ttp)
+
+                        ttp_data = AttackGen.githubVersion(ttp[1:])
+                        if ttp_data is None:
+                            continue
+                        ap = self.create_object(
+                            AttackPattern,
+                            **ttp_data,
+                        )
+                        ap = self.es.replace_w_extensions_spec(ap, "mitre")
+                        ttp_list.append(ap)
             return (ttp_list, ttp_list)
             
         except Exception as e:
@@ -489,7 +515,8 @@ class Cape2STIX:
     def genMutexes(self):
         # behavior/summary/mutexes
         mutex_list = []
-        for mutex_name in self.content["behavior"]["summary"]["mutexes"]:
+        # for mutex_name in self.content["behavior"]["summary"]["mutexes"]:
+        for mutex_name in self.content.get("behavior", {}).get("summary", {}).get("mutexes", []):
             mutex_list.append(
                 self.create_object(Mutex, name=mutex_name, force_uuidv5=True)
             )
@@ -545,7 +572,8 @@ class Cape2STIX:
     def genDeletedFiles(self, link_all=True, tree=False):
         # ['//behavior/summary/delete_files']
         return self.genFiles(
-            self.content["behavior"]["summary"]["delete_files"],
+            # self.content["behavior"]["summary"]["delete_files"],
+            self.content.get("behavior", {}).get("summary", {}).get("delete_files", []),
             link_all=link_all,
             tree=tree,
         )
@@ -553,7 +581,8 @@ class Cape2STIX:
     def genModifiedFiles(self, link_all=True, tree=False):
         # //behavior/summary/write_files
         return self.genFiles(
-            self.content["behavior"]["summary"]["write_files"],
+            # self.content["behavior"]["summary"]["write_files"],
+            self.content.get("behavior", {}).get("summary", {}).get("write_files", []),
             link_all=link_all,
             tree=tree,
         )
@@ -561,7 +590,8 @@ class Cape2STIX:
     def genReadFiles(self, link_all=True, tree=False):
         # ['//behavior/summary/read_files']
         return self.genFiles(
-            self.content["behavior"]["summary"]["read_files"],
+            self.content.get("behavior", {}).get("summary", {}).get("read_files", []),
+            # self.content["behavior"]["summary"]["read_files"],
             link_all=link_all,
             tree=tree,
         )
@@ -570,7 +600,8 @@ class Cape2STIX:
     def genDomainNames(self):
         # //network/domains
         l = []
-        for domain in self.content["network"]["domains"]:
+        # for domain in self.content["network"]["domains"]:
+        for domain in self.content.get("network", {}).get("domains", []):
             l.append(self.create_object(DomainName, value=domain["domain"]))
         return l, l
 
@@ -679,17 +710,20 @@ class Cape2STIX:
         objs_to_connect = []
         objects = []
         # //network/tcp
-        objs, rels = self.gennettraffic(self.content["network"]["tcp"], "tcp")
+        # objs, rels = self.gennettraffic(self.content["network"]["tcp"], "tcp")
+        objs, rels = self.gennettraffic(self.content.get("network", {}).get("tcp", []), "tcp")
         objs_to_connect.extend(objs)
         objects.extend(rels)
 
         # //network/udp
-        objs, rels = self.gennettraffic(self.content["network"]["udp"], "udp")
+        # objs, rels = self.gennettraffic(self.content["network"]["udp"], "udp")
+        objs, rels = self.gennettraffic(self.content.get("network", {}).get("udp", []), "udp")
         objs_to_connect.extend(objs)
         objects.extend(rels)
 
         # //network/hosts
-        objs, rels = self.genhosts(self.content["network"]["hosts"])
+        # objs, rels = self.genhosts(self.content["network"]["hosts"])
+        objs, rels = self.genhosts(self.content.get("network", {}).get("hosts", []))
         objs_to_connect.extend(objs)
         objects.extend(rels)
         # //network/dead_hosts
@@ -786,7 +820,7 @@ async def _main():
     logging.basicConfig(level=log_level)
     
     if args.file:
-        logging.debug(args.file)
+        #logging.debug(args.file)
 
         if os.path.exists(args.file):
             if args.clean_benign: BENIGN_DATA = parse_benign("cape2stix/scripts/benign/")

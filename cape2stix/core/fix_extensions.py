@@ -40,12 +40,12 @@ class StixLoader:
     """Class to manage creation, adding to and writing out our stix data."""
 
     def __init__(self, file_path=None, allow_custom=True):
-        logging.debug("init")
+        #logging.debug("init")
         self.allow_custom = allow_custom
         self.create_bundle(file_path=file_path)
 
     def create_bundle(self, file_path=None):
-        logging.info("creating bundle")
+        #logging.info("creating bundle")
         self.ms = MemoryStore(allow_custom=self.allow_custom)
         self.ms_source = self.ms.source
         self.ms_sink = self.ms.sink
@@ -62,9 +62,9 @@ class StixLoader:
         self.sl.write_out(os.path.join(self.dir, path_name))
 
     def merge(self, items):
-        logging.debug("Merging:")
+        #logging.debug("Merging:")
         for item in items:
-            logging.debug(f"Adding: {item}")
+            #logging.debug(f"Adding: {item}")
             self.ms_sink.add(item)
 
     def add_item(self, items):
@@ -75,8 +75,8 @@ class StixLoader:
 
     def write_out(self, path_):
         # We are not using the built in .save_to_file as its slow for some reason
-        logging.debug(f"attempting to write_out to path: {path_}")
-        logging.info("Starting save to file")
+        #logging.debug(f"attempting to write_out to path: {path_}")
+        #logging.info("Starting save to file")
         # self.ms.save_to_file(path)
         d = {
             "type": "bundle",
@@ -85,13 +85,13 @@ class StixLoader:
         }
 
         if d["objects"]:
-            logging.debug(d)
-            logging.debug(path_)
+            #logging.debug(d)
+            #logging.debug(path_)
             with open(path_, "w") as f:
                 json.dump(d, f, cls=STIXJSONEncoder)
-            logging.info(
-                f"Finished save to file, number of objects: {len(list(self.ms_source.query()))}"
-            )
+            #logging.info(
+            #     f"Finished save to file, number of objects: {len(list(self.ms_source.query()))}"
+            # )
 
 
 class ExtensionFixer:

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cape2stix"
-version = "0.1.0"
+version = "0.2.0"
 description = "Scripts to convert CAPE output to STIX and various utilities."
 authors = ["Michael Cutshaw <michael.cutshaw@inl.gov>", "Zachary Priest <zachary.priest@inl.gov>", "Will Brant <william.brant@inl.gov>"]
 packages = [
@@ -20,7 +20,7 @@ stix2-validator = { git = "https://github.com/oasis-open/cti-stix-validator.git"
 sphinx-rtd-theme = "^1.0.0"
 bandit = "^1.7.4"
 flake8 = "^4.0.1"
-black = "^22.3.0"
+black = "^24.10.0"
 genson = "^1.2.2"
 jupyter = "^1.0.0"
 matplotlib = "^3.5.2"

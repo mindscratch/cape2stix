@@ -13,12 +13,12 @@ class StixLoader:
     """Class to manage creation, adding to and writing out our stix data."""
 
     def __init__(self, file_path=None, allow_custom=True):
-        logging.debug("init succeeded")
+        #logging.debug("init succeeded")
         self.allow_custom = allow_custom
         self.create_bundle(file_path=file_path)
 
     def create_bundle(self, file_path=None):
-        logging.debug("creating bundle")
+        #logging.debug("creating bundle")
         self.ms = MemoryStore(allow_custom=self.allow_custom)
         self.ms_source = self.ms.source
         self.ms_sink = self.ms.sink
@@ -36,19 +36,19 @@ class StixLoader:
         self.sl.write_out(os.path.join(self.dir, path_name))
 
     def merge(self, items):
-        logging.debug("Merging:")
+        #logging.debug("Merging:")
         for item in items:
-            logging.debug(f"Adding:\n {item}")
+            #logging.debug(f"Adding:\n {item}")
             self.ms_sink.add(item)
 
     def add_item(self, items):
-        logging.debug("Adding:")
+        #logging.debug("Adding:")
         self.ms_sink.add(items, version=2.1)
 
     def rm_item(self, id):
         try:
             self.ms._data.pop(id)
-            logging.info(f"Removing:{id}") 
+            #logging.info(f"Removing:{id}") 
         except Exception as err:
             logging.warning(f"\033[31m {err} \033[0m")
     def get_item(self, id):
@@ -64,8 +64,8 @@ class StixLoader:
         # path2 = os.path.join("./" + path2)
 
         # We are not using the built in .save_to_file as its slow for some reason
-        logging.debug(f"attempting to write_out to path: {path2}")
-        logging.debug("Starting save to file")
+        #logging.debug(f"attempting to write_out to path: {path2}")
+        #logging.debug("Starting save to file")
         # self.ms.save_to_file(path)
         d = {
             "type": "bundle",
@@ -74,14 +74,26 @@ class StixLoader:
         }
 
         if d["objects"]:
-            logging.debug(d)
-            logging.debug(path2)
+            #logging.debug(d)
+            #logging.debug(path2)
             async with async_open(path2, "w") as f:
                 await f.write(json.dumps(d, cls=STIXJSONEncoder))
 
             Written = True
-            logging.info(
-                f"Finished save to file, number of objects: {len(list(self.ms_source.query()))}"
-            )
+            #logging.info(
+            #     f"Finished save to file, number of objects: {len(list(self.ms_source.query()))}"
+            # )
 
         return Written
+
+    async def write(self):
+        """Generate the STIX JSON"""
+        d = {
+            "type": "bundle",
+            "id": gen_uuid("bundle"),
+            "objects": [item for item in self.ms_source.query()],
+        }
+
+        if d["objects"]:
+            return json.dumps(d, cls=STIXJSONEncoder)
+        return None

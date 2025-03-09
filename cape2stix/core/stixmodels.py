@@ -90,6 +90,7 @@ class AttackPattern(Node):
     description = String()
     aliases = EmbeddedList()
     kill_chain_phases = EmbeddedList()
+    _id_contributing_properties = ["name"]
 
 
 class Campaign(Node):
@@ -114,6 +115,7 @@ class Campaign(Node):
     first_seen = DateTime()
     last_seen = DateTime()
     objective = String()
+    _id_contributing_properties = ["name"]
 
 
 class CourseOfAction(Node):
@@ -135,6 +137,7 @@ class CourseOfAction(Node):
     name = String(nullable=False)
     description = String()
     action = String()
+    _id_contributing_properties = ["name"]
 
 
 class ExternalReference(Node):
@@ -171,6 +174,7 @@ class Grouping(Node):
     description = String()
     context = String()
     object_refs = EmbeddedList()
+    _id_contributing_properties = ["name", "context", "created"]
 
 
 class Identity(Node):
@@ -194,6 +198,7 @@ class Identity(Node):
     identity_class = String()
     sectors = EmbeddedList()
     contact_information = String()
+    _id_contributing_properties = ["name", "description", "roles", "identity_class", "sectors", "contact_information"]
 
 
 class Indicator(Node):
@@ -221,6 +226,7 @@ class Indicator(Node):
     valid_from = DateTime()
     valid_until = DateTime()
     kill_chain_phases = EmbeddedList()
+    _id_contributing_properties = ["pattern"]
 
 
 class Infrastructure(Node):
@@ -246,6 +252,7 @@ class Infrastructure(Node):
     kill_chain_phases = EmbeddedList(linked_to=KillChainPhase)
     first_seen = DateTime()
     last_seen = DateTime()
+    _id_contributing_properties = ["name"]
 
 
 class IntrusionSet(Node):
@@ -273,6 +280,7 @@ class IntrusionSet(Node):
     resource_level = String()
     primary_motivation = String()
     secondary_motivations = EmbeddedList()
+    _id_contributing_properties = ["name"]
 
 
 class Location(Node):
@@ -302,6 +310,7 @@ class Location(Node):
     city = String()
     street_address = String()
     postal_code = String()
+    _id_contributing_properties = ["name"]
 
 
 class Malware(Node):
@@ -333,6 +342,7 @@ class Malware(Node):
     implementation_languages = EmbeddedList()
     capabilities = EmbeddedList()
     sample_refs = EmbeddedList()
+    _id_contributing_properties = ["name"]
 
 
 class MalwareAnalysis(Node):
@@ -367,6 +377,7 @@ class MalwareAnalysis(Node):
     result = String()
     analysis_sco_refs = EmbeddedList()
     sample_ref = String()
+    _id_contributing_properties = ["result_name", "product", "submitted"]
 
 
 class Note(Node):
@@ -389,6 +400,7 @@ class Note(Node):
     content = String()
     authors = EmbeddedList()
     object_refs = EmbeddedList()
+    _id_contributing_properties = ["created", "content"]
 
 
 class ObservedData(Node):
@@ -412,6 +424,7 @@ class ObservedData(Node):
     number_observed = Integer(nullable=False, default=1)
     objects_ = EmbeddedMap()
     object_refs = EmbeddedList()
+    _id_contributing_properties = ["object_refs"]
 
 
 class Opinion(Node):
@@ -434,6 +447,7 @@ class Opinion(Node):
     authors = EmbeddedList()
     opinion = String()
     object_refs = EmbeddedList()
+    _id_contributing_properties = ["created", "opinion"]
 
 
 class Report(Node):
@@ -457,6 +471,7 @@ class Report(Node):
     report_types = EmbeddedList()
     published = DateTime()
     object_refs = EmbeddedList()
+    _id_contributing_properties = ["name", "published"]
 
 
 class ThreatActor(Node):
@@ -488,6 +503,7 @@ class ThreatActor(Node):
     primary_motivation = String()
     secondary_motivations = EmbeddedList()
     personal_motivations = EmbeddedList()
+    _id_contributing_properties = ["name"]
 
 
 class Tool(Node):
@@ -511,6 +527,7 @@ class Tool(Node):
     tool_types = EmbeddedList()
     kill_chain_phases = EmbeddedList()
     tool_version = String()
+    _id_contributing_properties = ["name"]
 
 
 class Vulnerability(Node):
@@ -531,6 +548,7 @@ class Vulnerability(Node):
     granular_markings = EmbeddedList(linked_to=GranularMarking)
     name = String(nullable=False)
     description = String()
+    _id_contributing_properties = ["name"]
 
 
 class Relationship(Relationships):
